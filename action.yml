@@ -1,19 +1,28 @@
-name: 'configure-aws-codeartifact'
-description: 'custom Github Action to use AWS CodeArtifact token in Github Actions Workflow'
+name: "configure-aws-codeartifact"
+description: "custom Github Action to use AWS CodeArtifact token in Github Actions Workflow"
 inputs:
+  region:
+    description: "AWS region"
+    required: true
   domain:
-    description: 'CodeArtifact domain'
+    description: "CodeArtifact domain"
     required: true
   domain-owner:
-    description: 'CodeArtifact domain-owner'
+    description: "CodeArtifact domain-owner"
     required: true
-  duration-seconds:
-    description: 'authorization token duration in seconds'
+  repository:
+    description: "CodeArtifact repository. Only required if you want to retrieve the repository endpoint URL as an output."
     required: false
-    default: '3600'
+  format:
+    description: "CodeArtifact repository format (e.g. npm, pypi, maven)"
+    required: false
+  duration-seconds:
+    description: "authorization token duration in seconds"
+    required: false
+    default: "3600"
 outputs:
-  endpoint-pypi:
-    description: 'pypi endpoint'
+  endpoint:
+    description: 'repository endpoint. Only set if "repository" input is provided.'
 runs:
-  using: 'node16'
-  main: 'dist/index.js'
+  using: "node16"
+  main: "dist/index.js"

@@ -1,48 +1,75 @@
-const core = require('@actions/core');
+const core = require("@actions/core");
 const {
   CodeartifactClient,
   GetAuthorizationTokenCommand,
   GetRepositoryEndpointCommand,
   // eslint-disable-next-line no-unused-vars
   GetRepositoryEndpointCommandOutput,
-  PackageFormat,
-} = require('@aws-sdk/client-codeartifact');
+} = require("@aws-sdk/client-codeartifact");
 
 async function run() {
   try {
-    const repository = core.getInput('domain');
-    const domain = core.getInput('domain');
-    const domainOwner = core.getInput('domain-owner');
-    const durationSeconds = core.getInput('duration-seconds');
+    const region = core.getInput("region");
+    const repository = core.getInput("repository");
+    const domain = core.getInput("domain");
+    const domainOwner = core.getInput("domain-owner");
+    const format = core.getInput("format");
+    const durationSeconds = parseInt(core.getInput("duration-seconds"));
+
+    if (!region || !domain) {
+      core.setFailed("Required inputs 'region', 'domain' must be provided.");
+      return;
+    }
 
     const client = new CodeartifactClient({
-      region: 'eu-central-1',
+      region: region,
     });
 
-    const getRepositoryEndpointCmd = new GetRepositoryEndpointCommand({
-      domain,
-      domainOwner,
-      repository,
-      format: PackageFormat.PYPI,
-    });
+    if (repository) {
+      const getRepositoryEndpointCmd = new GetRepositoryEndpointCommand({
+        domain,
+        domainOwner,
+        repository,
+        format: format,
+      });
 
-    /** @type GetRepositoryEndpointCommandOutput */
-    const endpointResult = await client.send(getRepositoryEndpointCmd);
+      /** @type GetRepositoryEndpointCommandOutput */
+      const endpointResult = await client.send(getRepositoryEndpointCmd);
 
-    core.exportVariable('CODEARTIFACT_ENDPOINT_PYPI', endpointResult.repositoryEndpoint);
-    core.info(`PyPi Repository Endpoint URL: ${endpointResult.repositoryEndpoint}`);
-    core.setOutput('endpoint-pypi', endpointResult.repositoryEndpoint);
+      if (!endpointResult.repositoryEndpoint) {
+        core.setFailed(
+          "Failed to retrieve repository endpoint from CodeArtifact.",
+        );
+        return;
+      }
+
+      core.exportVariable(
+        "CODEARTIFACT_REPOSITORY_ENDPOINT",
+        endpointResult.repositoryEndpoint,
+      );
+      core.setOutput("endpoint", endpointResult.repositoryEndpoint);
+    }
 
     const getAuthorizationTokenCmd = new GetAuthorizationTokenCommand({
       domain,
       domainOwner,
-      durationSeconds
+      durationSeconds: durationSeconds !== 0 ? durationSeconds : null,
     });
 
     const tokenResult = await client.send(getAuthorizationTokenCmd);
-    core.exportVariable('CODEARTIFACT_AUTH_TOKEN', tokenResult.authorizationToken);
-    core.setSecret(tokenResult.authorizationToken);
 
+    if (!tokenResult.authorizationToken) {
+      core.setFailed(
+        "Failed to retrieve authorization token from CodeArtifact.",
+      );
+      return;
+    }
+
+    core.exportVariable(
+      "CODEARTIFACT_AUTH_TOKEN",
+      tokenResult.authorizationToken,
+    );
+    core.setSecret(tokenResult.authorizationToken);
   } catch (error) {
     core.setFailed(error.message);
   }
