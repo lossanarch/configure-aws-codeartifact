@@ -24,5 +24,5 @@ outputs:
   endpoint:
     description: 'repository endpoint. Only set if "repository" input is provided.'
 runs:
-  using: "node16"
+  using: "node24"
   main: "dist/index.js"
